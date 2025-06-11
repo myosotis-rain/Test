@@ -1,23 +1,197 @@
+<!-- The version has a problem where initially the upload page shows & another problem of box sizing-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Image Upload Demo</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Future Sketches: AI Art Critique (Placeholder)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
 </head>
 <body>
-  <div class="container">
-    <div class="left">
-      <h2>Upload Image</h2>
-      <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="image" accept="image/*" required>
-        <button type="submit">Upload</button>
+
+<div class="container">
+  <header>
+    <h1>AI Art Critique (Placeholder)</h1>
+    <p>Upload your artwork, add context, and get AI-powered insights plus related pieces.</p>
+  </header>
+
+  <main class="main-content">
+    <!-- Left Panel -->
+    <section class="left-panel" aria-label="Artwork upload and options" id="searchPanel">
+      <form id="artworkForm" autocomplete="off" novalidate>
+        <div class="file-input-wrapper">
+          <input type="file" id="fileInput" name="artwork" accept="image/*" aria-describedby="fileLabel" />
+          <label for="fileInput" class="file-input-label" id="fileLabel">Choose an image</label>
+          <div class="preview-section" id="previewSection" aria-live="polite">
+            <p class="placeholder-text">No artwork selected</p>
+          </div>
+        </div>
+
+        <div class="context-section">
+          <label for="context" class="toggle-label">Optional context or description:</label>
+          <textarea id="context" name="context" placeholder="Describe your artwork or add background details..." rows="4"></textarea>
+        </div>
+
+        <div class="context-section">
+          <p class="toggle-label">Select analysis type:</p>
+          <div class="toggle-options" role="radiogroup" aria-label="Analysis type">
+            <label class="toggle-option" for="analysisArtHistory">
+              <input type="radio" name="analysisType" id="analysisArtHistory" value="artHistory" checked />
+              <span>Art History</span>
+            </label>
+            <label class="toggle-option" for="analysisImageSubject">
+              <input type="radio" name="analysisType" id="analysisImageSubject" value="imageSubject" />
+              <span>Image Subject</span>
+            </label>
+            <label class="toggle-option" for="analysisOther">
+              <input type="radio" name="analysisType" id="analysisOther" value="other" />
+              <span>Other</span>
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="analyze-btn" aria-live="polite" aria-busy="false">
+          Analyze Artwork
+        </button>
       </form>
-    </div>
-    <div class="right">
-      <h2>Image Placeholder</h2>
-      <div class="placeholder">Image will appear here</div>
-    </div>
-  </div>
+    </section>
+
+    <!-- Right Panel -->
+    <section class="right-panel" aria-label="Image preview and results" id="resultsPanel" style="display: flex; flex-direction: column;">
+      <section class="results-section" aria-live="polite" aria-atomic="true" aria-label="Analysis results and related artworks" hidden>
+        <div class="analysis-content">
+          <div class="uploaded-image-container">
+            <img id="uploadedImage" alt="Uploaded artwork preview" />
+            <p class="image-description">Uploaded artwork</p>
+          </div>
+
+          <div class="related-artworks">
+            <h2>Related Artworks</h2>
+            <div id="artworks-container" aria-live="polite" aria-atomic="true">
+              <!-- Related artworks inserted here -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <button id="analyzeNewBtn" aria-label="Analyze a new artwork" type="button" style="display:none;">
+        Analyze New Artwork
+      </button>
+    </section>
+  </main>
+</div>
+
+<script>
+  const fileInput = document.getElementById('fileInput');
+  const fileLabel = document.getElementById('fileLabel');
+  const previewSection = document.getElementById('previewSection');
+  const artworkForm = document.getElementById('artworkForm');
+  const analyzeBtn = artworkForm.querySelector('button[type="submit"]');
+  const resultsSection = document.querySelector('.results-section');
+  const uploadedImage = document.getElementById('uploadedImage');
+  const artworksContainer = document.getElementById('artworks-container');
+
+  const searchPanel = document.getElementById('searchPanel');
+  const resultsPanel = document.getElementById('resultsPanel');
+  const analyzeNewBtn = document.getElementById('analyzeNewBtn');
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+      const fileName = fileInput.files[0].name;
+      fileLabel.textContent = fileName;
+      fileLabel.classList.add('file-selected');
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = e => {
+        previewSection.innerHTML = `<img src="${e.target.result}" alt="Preview of selected artwork" class="fade-in" />`;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      fileLabel.textContent = 'Choose an image';
+      fileLabel.classList.remove('file-selected');
+      previewSection.innerHTML = '<p class="placeholder-text">No artwork selected</p>';
+    }
+  });
+
+  function showResults() {
+    resultsSection.hidden = false;
+    analyzeNewBtn.style.display = 'inline-block';
+  }
+
+  function showSearch() {
+    resultsSection.hidden = true;
+    analyzeNewBtn.style.display = 'none';
+    artworkForm.reset();
+    fileLabel.textContent = 'Choose an image';
+    fileLabel.classList.remove('file-selected');
+    previewSection.innerHTML = '<p class="placeholder-text">No artwork selected</p>';
+    artworksContainer.innerHTML = '';
+    uploadedImage.src = '';
+    uploadedImage.alt = 'Uploaded artwork preview';
+  }
+
+  artworkForm.addEventListener('submit', e => {
+    e.preventDefault();
+    if (!fileInput.files.length) {
+      alert('Please select an image file first.');
+      return;
+    }
+
+    analyzeBtn.disabled = true;
+    analyzeBtn.setAttribute('aria-busy', 'true');
+    analyzeBtn.textContent = 'Analyzing...';
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      uploadedImage.src = e.target.result;
+      uploadedImage.alt = `Uploaded artwork titled "${fileInput.files[0].name}"`;
+    };
+    reader.readAsDataURL(fileInput.files[0]);
+
+    fetch('/analyze', {
+      method: 'POST'
+    })
+      .then(res => res.json())
+      .then(data => {
+        artworksContainer.innerHTML = '';
+        data.artworks.forEach(art => {
+          const card = document.createElement('div');
+          card.className = 'related-artwork-card';
+          card.tabIndex = 0;
+          card.innerHTML = `
+            <a href="${art.more_info_url}" target="_blank" rel="noopener noreferrer" class="artwork-link" aria-label="${art.text}, from ${art.source}">
+              <img src="${art.image_url}" alt="${art.text}" class="artwork-image"/>
+              <div class="artwork-info">
+                <p class="art-text">${art.text}</p>
+                <p class="art-source">Source: ${art.source}</p>
+              </div>
+            </a>
+          `;
+          artworksContainer.appendChild(card);
+        });
+
+        showResults();
+
+        analyzeBtn.disabled = false;
+        analyzeBtn.setAttribute('aria-busy', 'false');
+        analyzeBtn.textContent = 'Analyze Artwork';
+
+        resultsSection.scrollIntoView({ behavior: 'smooth' });
+      })
+      .catch(() => {
+        alert('Error fetching analysis results.');
+        analyzeBtn.disabled = false;
+        analyzeBtn.setAttribute('aria-busy', 'false');
+        analyzeBtn.textContent = 'Analyze Artwork';
+      });
+  });
+
+  analyzeNewBtn.addEventListener('click', () => {
+    showSearch();
+  });
+</script>
+
 </body>
 </html>
